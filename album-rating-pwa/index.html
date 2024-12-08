@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
+  <title>Album Ratings</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- iOS meta tags for PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- Framework7 CSS (for iOS look) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7@6.3.14/framework7.bundle.min.css" />
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Framework7 App root -->
+    <div class="view view-main safe-areas">
+      <!-- Main Page -->
+      <div class="page" data-name="home">
+        <div class="navbar">
+          <div class="navbar-inner">
+            <div class="title">Albums</div>
+            <div class="right">
+              <a href="#" class="link searchbar-enable icon-only">
+                <i class="icon f7-icons">search</i>
+              </a>
+            </div>
+            <form class="searchbar" data-search-in=".list">
+              <div class="searchbar-inner">
+                <div class="searchbar-input-wrap">
+                  <input type="search" placeholder="Search albums or artists" id="searchInput"/>
+                  <i class="searchbar-icon"></i>
+                  <span class="input-clear-button"></span>
+                </div>
+                <span class="searchbar-disable-button">Cancel</span>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="page-content">
+          <div class="toolbar tabbar">
+            <div class="toolbar-inner">
+              <a href="#" class="tab-link tab-link-active" data-mode="albums">Albums</a>
+              <a href="#" class="tab-link" data-mode="artists">Artists</a>
+              <a href="#" class="tab-link" id="openSettings">Ratings</a>
+              <a href="#" class="tab-link" id="syncButton">
+                <i class="icon f7-icons">sync</i>
+              </a>
+            </div>
+          </div>
+          <div class="list simple-list searchbar-found" id="albumList">
+            <!-- Albums or Artists will be listed here -->
+          </div>
+          <div class="fab fab-right-bottom">
+            <a href="#" class="link fab-toggle" id="addAlbumButton">
+              <i class="icon f7-icons">plus</i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <!-- Additional pages and features here -->
+    </div>
+  </div>
+  
+  <!-- Framework7 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/framework7@6.3.14/framework7.bundle.min.js"></script>
+  
+  <!-- Include dependencies -->
+  <script src="js/config.js"></script>
+  <script src="js/idb.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/main.js"></script>
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
