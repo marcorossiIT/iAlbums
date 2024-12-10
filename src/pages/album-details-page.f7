@@ -1,0 +1,48 @@
+<template>
+    <div class="page" data-name="album-details">
+      <!-- Top Navbar -->
+      <div class="navbar navbar-large">
+        <div class="navbar-bg"></div>
+        <div class="navbar-inner">
+          <div class="title sliding">Dettagli</div>
+          <div class="title-large">
+            <div class="title-large-text">Dettagli</div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="page-content">
+        <div class="block-title">{{ albumName }}</div>
+        <div class="block">
+          <p>Rating: {{ albumRating }}</p>
+          <p>Author: {{ albumAuthor }}</p>
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <script>
+  export default {
+    props: {
+      albumID: String, // Album ID passed as a prop from the route
+    },
+    data() {
+      return {
+        albumName: 'Unknown Album',
+        albumRating: 'No Rating',
+        albumAuthor: 'Unknown Author',
+      };
+    },
+    mounted() {
+      // Fetch album details from the store
+      const album = this.$store.getters.albums.find((a) => a.id === this.albumID);
+      if (album) {
+        const author = this.$store.getters.authors.find((a) => a.id === album.authors[0]) || {};
+        this.albumName = `Album ${this.albumID}`;
+        this.albumRating = album.rating;
+        this.albumAuthor = author.name || 'Unknown Author';
+      }
+    },
+  };
+  </script>
+  

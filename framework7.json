@@ -1,0 +1,19 @@
+{
+  "cwd": "C:\\Users\\Mary Poppins\\12 ialbums",
+  "type": [
+    "pwa",
+    "web"
+  ],
+  "name": "iAlbums",
+  "framework": "core",
+  "template": "single-view",
+  "bundler": "vite",
+  "cssPreProcessor": false,
+  "theming": {
+    "customColor": true,
+    "color": "#D64933",
+    "darkMode": false,
+    "iconFonts": true
+  },
+  "customBuild": false
+}
