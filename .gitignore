@@ -33,7 +33,7 @@ node_modules/
 # Misc
 .DS_Store
 Thumbs.db
-src\github.config.js
+github.config.js
 
 
 
