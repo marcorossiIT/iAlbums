@@ -1,69 +1,232 @@
 <template>
-    <div class="page" data-name="home">
-      <!-- Top Navbar -->
-      <div class="navbar navbar-large">
-        <div class="navbar-bg"></div>
-        <div class="navbar-inner">
-          <div class="title sliding">iAlbums</div>
-          <div class="title-large">
-            <div class="title-large-text">iAlbums</div>
-          </div>
+  <div class="page" data-name="home">
+    <!-- Top Navbar -->
+    <div class="navbar navbar-large">
+      <div class="navbar-bg"></div>
+      <div class="navbar-inner">
+        <div class="title sliding">iAlbums</div>
+        <div class="title-large">
+          <div class="title-large-text">iAlbums</div>
         </div>
-      </div>
-  
-      <div class="page-content">
-        <div class="block">
-          <p>La tua lista di Album!</p>
-        </div>
-        <div class="block-title">Albums</div>
-  
-        <!-- Show Preloader when loading -->
-        <div v-if="loading" class="block">
-          <div class="preloader color-blue"></div>
-          <p>Sincronizzazione in corso...</p>
-        </div>
-  
-        <!-- No Albums Found -->
-        <div v-if="!loading && albums.length === 0" class="block">
-          <p>Nessun album trovato. Prova a sincronizzare.</p>
-        </div>
-  
-        <!-- Albums List -->
-        <div v-else-if="!loading" class="list list-strong inset list-dividers-ios links-list">
-          <ul>
-            <li v-for="album in albums" :key="album.id">
-              <a href="#">{{ getAlbumDetails(album) }}</a>
-            </li>
-          </ul>
+        <!-- Sync Icon Button -->
+        <div class="right">
+          <button class="button sync-button" @click="syncData">
+            <i v-if="!syncing" class="f7-icons ios:arrow_2_sync_cw md:refresh_cw"></i>
+            <i v-else class="f7-icons preloader ios:preloader ios:spinner ios:spinner-white"></i>
+          </button>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    data() {
-      return {
-        albums: [],
-      };
-    },
-    computed: {
-      loading() {
-        return this.$store.getters.isLoading;
-      },
-    },
-    async mounted() {
-      // Fetch data and update state
-      await this.$store.dispatch('fetchData');
-      this.albums = this.$store.getters.albums;
-    },
-    methods: {
-      getAlbumDetails(album) {
-        const authors = this.$store.getters.authors;
-        const author = authors.find((a) => a.id === album.authors[0]) || {};
-        return `${author.name || 'Unknown'} - ${album.rating}`;
-      },
-    },
-  };
-  </script>
-  
+
+    <!-- List Index -->
+    <div class="list-index"></div>
+
+    <div class="page-content">
+      <div class="block">
+        <p>La tua lista di Album!</p>
+      </div>
+      <div class="block">
+        <p class="block">
+        <div class="segmented segmented-strong">
+          <button class="button" :class="{ 'button-active': activeSort === 'title' }"
+            @click="setSort('title')">Title</button>
+          <button class="button" :class="{ 'button-active': activeSort === 'year' }"
+            @click="setSort('year')">Year</button>
+          <button class="button" :class="{ 'button-active': activeSort === 'rating' }"
+            @click="setSort('rating')">Rating</button>
+          <span class="segmented-highlight"></span>
+        </div>
+      </div>
+      </p>
+
+      <div class="list contacts-list">
+        <!-- Album groups will be dynamically inserted here -->
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default function (props, { $f7, $onMounted, $onBeforeUnmount, $update, $store }) {
+
+    let activeSort = 'title';
+    let syncing = false; // Tracks whether sync is in progress
+
+    const syncData = async () => {
+      if (syncing) return; // Prevent multiple syncs
+
+      syncing = true;
+      $update(); // Update the UI to show the spinner
+
+      try {
+        await $store.dispatch('fetchData'); // Trigger sync
+        $f7.toast.create({
+          text: 'Data synced successfully!',
+          closeTimeout: 2000,
+          closeButton: true,
+        }).open();
+      } catch (error) {
+        console.error('Sync failed:', error);
+        $f7.toast.create({
+          text: 'Sync failed. Please try again later.',
+          closeTimeout: 3000,
+          closeButton: true,
+        }).open();
+      } finally {
+        syncing = false;
+        $update(); // Hide the spinner
+      }
+    };
+
+    const setSort = (criterion) => {
+      activeSort = criterion;
+      sortAlbums();
+      $update(); // Update the component to reflect changes
+    };
+
+    const sortAlbums = () => {
+
+
+      const albums = [...$store.getters.albums.value]; // Clone the albums array
+      albums.sort((a, b) => {
+        if (activeSort === 'title') return a.title.localeCompare(b.title);
+        if (activeSort === 'year') return a.year - b.year;
+        if (activeSort === 'rating') return a.rating.localeCompare(b.rating);
+      });
+      renderAlbums(albums);
+    };
+
+    const renderAlbums = (albums) => {
+      console.log('Loaded s:', albums);
+      const listEl = document.querySelector('.contacts-list');
+      listEl.innerHTML = ''; // Clear existing content
+
+      // Group albums alphabetically
+      const groupedAlbums = albums.reduce((groups, album) => {
+        const letter = album.title[0].toUpperCase();
+        if (!groups[letter]) groups[letter] = [];
+        groups[letter].push(album);
+        return groups;
+      }, {});
+
+      // Get group indexes (A-Z)
+      const indexes = Object.keys(groupedAlbums).sort();
+
+      // Populate the list with grouped albums
+      indexes.forEach((letter) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'list-group';
+        groupEl.innerHTML = `
+        <ul>
+          <li class="list-group-title">${letter}</li>
+          ${groupedAlbums[letter]
+            .map((album) => {
+              const authorNames = album.authors
+                .map((id) => {
+                  const author = $store.getters.authors.value.find((a) => a.id === id);
+                  return author ? author.name : 'Unknown Author';
+                })
+                .join(', ');
+
+              const ratingIcon = {
+                meh: 'Meh 😐',
+                good: 'Good 😊',
+                bad: 'Bad 😢',
+              }[album.rating];
+
+              return `
+                <li>
+                  <a href="/details/${album.id}" class="item-link item-content">
+                    <div class="item-inner">
+                      <div class="item-title">${album.title}</div>
+                      <div class="item-after">
+                        <span class="item-authors" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${authorNames}</span>
+                      </div>
+                      <div class="item-rating">${ratingIcon}</div>
+                    </div>
+                  </a>
+                </li>`;
+            })
+            .join('')}
+        </ul>
+      `;
+        listEl.appendChild(groupEl);
+      });
+
+      // Initialize the List Index
+      const listIndexEl = document.querySelector('.list-index');
+      const listIndex = $f7.listIndex.create({
+        el: listIndexEl,
+        listEl,
+        indexes,
+        scrollList: true,
+        label: true,
+      });
+    };
+
+    let listIndex;
+
+    // Lifecycle: On Mounted
+    $onMounted(async () => {
+
+      await syncData();
+
+      $store.dispatch('loadLocalStorage'); // Load data from local storage
+      sortAlbums(); // Initial sort and render
+
+    });
+
+    // Lifecycle: On Before Unmount
+    $onBeforeUnmount(() => {
+      if (listIndex) listIndex.destroy();
+    });
+
+    // Return the render function
+    return $render;
+  }
+</script>
+<style>
+/* Minimalistic rating styles */
+.item-rating {
+  font-size: 18px;
+  margin-left: 10px;
+}
+
+/* Improve spacing between authors and ratings */
+.item-authors {
+  font-size: 14px;
+  margin-right: 10px;
+  color: #666;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Segmented controls */
+.segmented .button {
+  text-transform: capitalize;
+}
+
+.segmented .button-active {
+  font-weight: bold;
+}
+
+/* Sync button styles */
+.sync-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: var(--f7-icon-color, #000);
+}
+
+.sync-button .preloader {
+  margin-left: 5px;
+}
+
+/* Optional: Change sync icon color when active */
+.sync-button.syncing {
+  color: var(--f7-color-primary);
+}
+</style>

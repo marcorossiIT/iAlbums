@@ -1,7 +1,9 @@
 import { createStore } from 'framework7';
-import githubConfig from '../github.config'; // Default import
+import remotedataConfig from '../remoteStorage.config';
 
-const gistUrl = githubConfig.gistURL;
+
+const { dataUrl: remoteDataURL, apiKey: remoteDataAPIKey } = remotedataConfig;
+
 const localStorageKey = 'iAlbumsData';
 
 const store = createStore({
@@ -23,37 +25,54 @@ const store = createStore({
     },
   },
   actions: {
-    async fetchData({ state }) {
+    loadLocalStorage({ state }) {
+      const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
+      state.albums = localData.albums || [];
+      state.authors = localData.authors || [];
+      state.ratings = localData.ratings || [];
+      state.lastModified = localData.lastModified || null;
+    },
+    saveToLocalStorage({ state }) {
+      const dataToSave = {
+        albums: state.albums,
+        authors: state.authors,
+        ratings: state.ratings,
+        lastModified: new Date().toISOString(),
+      };
+      localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+    },
+    async fetchData({ dispatch }) {
       try {
-        const response = await fetch(gistUrl);
+        const remoteResult = await fetch(remoteDataURL, {
+          headers: {
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+            'X-Access-Key': remoteDataAPIKey,
+            'X-Bin-Meta': true,
+          }
+
+        });
+
+        if (!remoteResult.ok) {
+          console.error('getting gist data error:', await remoteResult.text());
+          throw new Error(`getting gist HTTP error! Status: ${remoteResult.status}`);
         }
 
-        const remoteData = await response.json();
 
-        // Update local storage if the Gist data is newer
+
+        const remoteAlbums = (await remoteResult.json()).record;
         const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
-        if (!localData.lastModified || new Date(remoteData.lastModified) > new Date(localData.lastModified)) {
-          localStorage.setItem(localStorageKey, JSON.stringify(remoteData));
+
+
+        // Compare timestamps and update local storage if needed
+        if (!localData.lastModified || new Date(remoteAlbums.lastModified) > new Date(localData.lastModified)) {
+          localStorage.setItem(localStorageKey, JSON.stringify(remoteAlbums));
           console.log('Local storage updated with data from Gist.');
+          dispatch('loadLocalStorage'); // Refresh the state
         }
-
-        // Update state
-        state.albums = remoteData.albums;
-        state.authors = remoteData.authors;
-        state.ratings = remoteData.ratings;
-        state.lastModified = remoteData.lastModified;
       } catch (error) {
-        console.error('Error fetching data:', error);
-        // If offline, load from localStorage
-        const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
-        state.albums = localData.albums || [];
-        state.authors = localData.authors || [];
-        state.ratings = localData.ratings || [];
-        state.lastModified = localData.lastModified || null;
-        console.log('Using local storage data due to fetch error.');
+        console.error('Error syncing data:', error);
+        // Fallback: Load from local storage
+        dispatch('loadLocalStorage');
       }
     },
   },
