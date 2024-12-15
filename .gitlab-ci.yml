@@ -1,0 +1,28 @@
+image: node:18
+
+stages:
+  - build
+  - deploy
+
+cache:
+  paths:
+    - node_modules/
+
+build:
+  stage: build
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - www/
+
+pages:
+  stage: deploy
+  script:
+    - cp -r www/ public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
