@@ -9,12 +9,7 @@
           <div class="title-large-text">iAlbums</div>
         </div>
         <!-- Sync Icon Button -->
-        <div class="right">
-          <button class="button sync-button" @click="syncData">
-            <i v-if="!syncing" class="f7-icons ios:arrow_2_sync_cw md:refresh_cw"></i>
-            <i v-else class="f7-icons preloader ios:preloader ios:spinner ios:spinner-white"></i>
-          </button>
-        </div>
+
       </div>
     </div>
 
@@ -54,6 +49,8 @@
 
     const syncData = async () => {
       if (syncing) return; // Prevent multiple syncs
+
+      console.info('I\'m Syncing')
 
       syncing = true;
       $update(); // Update the UI to show the spinner
@@ -171,6 +168,7 @@
 
       await syncData();
 
+
       $store.dispatch('loadLocalStorage'); // Load data from local storage
       sortAlbums(); // Initial sort and render
 
@@ -186,47 +184,47 @@
   }
 </script>
 <style>
-/* Minimalistic rating styles */
-.item-rating {
-  font-size: 18px;
-  margin-left: 10px;
-}
+  /* Minimalistic rating styles */
+  .item-rating {
+    font-size: 18px;
+    margin-left: 10px;
+  }
 
-/* Improve spacing between authors and ratings */
-.item-authors {
-  font-size: 14px;
-  margin-right: 10px;
-  color: #666;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  /* Improve spacing between authors and ratings */
+  .item-authors {
+    font-size: 14px;
+    margin-right: 10px;
+    color: #666;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-/* Segmented controls */
-.segmented .button {
-  text-transform: capitalize;
-}
+  /* Segmented controls */
+  .segmented .button {
+    text-transform: capitalize;
+  }
 
-.segmented .button-active {
-  font-weight: bold;
-}
+  .segmented .button-active {
+    font-weight: bold;
+  }
 
-/* Sync button styles */
-.sync-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  color: var(--f7-icon-color, #000);
-}
+  /* Sync button styles */
+  .sync-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: var(--f7-icon-color, #000);
+  }
 
-.sync-button .preloader {
-  margin-left: 5px;
-}
+  .sync-button .preloader {
+    margin-left: 5px;
+  }
 
-/* Optional: Change sync icon color when active */
-.sync-button.syncing {
-  color: var(--f7-color-primary);
-}
+  /* Optional: Change sync icon color when active */
+  .sync-button.syncing {
+    color: var(--f7-color-primary);
+  }
 </style>
