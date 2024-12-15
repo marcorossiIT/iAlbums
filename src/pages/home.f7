@@ -66,7 +66,7 @@
         console.error('Sync failed:', error);
         $f7.toast.create({
           text: 'Sync failed. Please try again later.',
-          closeTimeout: 3000,
+          closeTimeout: 2000,
           closeButton: true,
         }).open();
       } finally {
@@ -133,7 +133,7 @@
 
               return `
                 <li>
-                  <a href="/details/${album.id}" class="item-link item-content">
+                  <a href="/details/${album.id}/" class="item-link item-content">
                     <div class="item-inner">
                       <div class="item-title">${album.title}</div>
                       <div class="item-after">
@@ -143,6 +143,7 @@
                     </div>
                   </a>
                 </li>`;
+
             })
             .join('')}
         </ul>

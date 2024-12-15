@@ -29,9 +29,9 @@ var routes = [
     component: DynamicRoutePage,
   },
   {
-    path: '/details/:albumID',
+    path: '/details/:albumID/',
     component: AlbumDetailsPage,
-    props: true, // Pass props to the component
+    props: true,
   },
   {
     path: '/request-and-load/user/:userId/',

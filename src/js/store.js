@@ -25,6 +25,19 @@ const store = createStore({
     },
   },
   actions: {
+    updateAlbum({ state }, updatedAlbum) {
+      const albumIndex = state.albums.findIndex((album) => album.id === updatedAlbum.id);
+      if (albumIndex !== -1) {
+        state.albums[albumIndex] = { ...state.albums[albumIndex], ...updatedAlbum };
+        state.lastModified = new Date().toISOString();
+        localStorage.setItem('albumsData', JSON.stringify(state));
+      }
+    },
+    addAuthor({ state }, newAuthor) {
+      state.authors.push(newAuthor);
+      state.lastModified = new Date().toISOString();
+      localStorage.setItem('albumsData', JSON.stringify(state));
+    },
     loadLocalStorage({ state }) {
       const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
       state.albums = localData.albums || [];

@@ -1,48 +1,155 @@
 <template>
-    <div class="page" data-name="album-details">
-      <!-- Top Navbar -->
-      <div class="navbar navbar-large">
-        <div class="navbar-bg"></div>
-        <div class="navbar-inner">
-          <div class="title sliding">Dettagli</div>
-          <div class="title-large">
-            <div class="title-large-text">Dettagli</div>
-          </div>
+  <div class="page" data-name="album-details">
+    <!-- Top Navbar -->
+    <div class="navbar navbar-large">
+      <div class="navbar-bg"></div>
+      <div class="navbar-inner">
+        <div class="left">
+          <a href="#" class="link back">
+            <i class="icon icon-back"></i>
+          </a>
         </div>
-      </div>
-  
-      <div class="page-content">
-        <div class="block-title">{{ albumName }}</div>
-        <div class="block">
-          <p>Rating: {{ albumRating }}</p>
-          <p>Author: {{ albumAuthor }}</p>
+        <div class="title sliding">Album Details</div>
+        <div class="right">
+          <button id="save-album-button" class="button button-small hidden">Save</button>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    props: {
-      albumID: String, // Album ID passed as a prop from the route
-    },
-    data() {
-      return {
-        albumName: 'Unknown Album',
-        albumRating: 'No Rating',
-        albumAuthor: 'Unknown Author',
-      };
-    },
-    mounted() {
-      // Fetch album details from the store
-      const album = this.$store.getters.albums.find((a) => a.id === this.albumID);
+
+    <div class="page-content">
+      <div class="block">
+        <div class="list form-store-data">
+          <ul>
+            <!-- Album Title -->
+            <li>
+              <div class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label">Title</div>
+                  <div class="item-input-wrap">
+                    <input type="text" name="album-title" placeholder="Enter Album Title" />
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            <!-- Album Rating -->
+            <li>
+              <div class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label">Rating</div>
+                  <div class="item-input-wrap">
+                    <input type="text" name="album-rating" list="rating-options"
+                      placeholder="Enter or choose a rating" />
+                    <datalist id="rating-options">
+                      <!-- Dynamically populated -->
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            <!-- Album Author -->
+            <li>
+              <div class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label">Author</div>
+                  <div class="item-input-wrap">
+                    <input type="text" name="album-author" placeholder="Enter Author Name" />
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default function (props, { $store, $onMounted, $f7 }) {
+    let albumName = '';
+    let albumRating = '';
+    let albumAuthor = '';
+    let hasUnsavedChanges = false;
+
+    const loadAlbumDetails = () => {
+      const album = $store.getters.albums.value.find((a) => a.id === props.albumID);
       if (album) {
-        const author = this.$store.getters.authors.find((a) => a.id === album.authors[0]) || {};
-        this.albumName = `Album ${this.albumID}`;
-        this.albumRating = album.rating;
-        this.albumAuthor = author.name || 'Unknown Author';
+        const author = $store.getters.authors.value.find((a) => a.id === album.authors[0]) || {};
+        albumName = album.title;
+        albumRating = album.rating;
+        albumAuthor = author.name || 'Unknown Author';
       }
-    },
-  };
-  </script>
-  
+      const ratings = $store.getters.ratings.value;
+
+      // Populate fields
+      document.querySelector('input[name="album-title"]').value = albumName;
+      document.querySelector('input[name="album-rating"]').value = albumRating;
+      document.querySelector('input[name="album-author"]').value = albumAuthor;
+
+      // Populate rating options
+      const ratingOptions = document.getElementById('rating-options');
+      ratings.forEach((rating) => {
+        const option = document.createElement('option');
+        option.value = rating;
+        ratingOptions.appendChild(option);
+      });
+    };
+
+    const onFieldChange = () => {
+      if (!hasUnsavedChanges) {
+        hasUnsavedChanges = true;
+        document.getElementById('save-album-button').classList.remove('hidden');
+      }
+    };
+
+    const saveAlbumDetails = () => {
+      const updatedAlbum = {
+        id: props.albumID,
+        title: document.querySelector('input[name="album-title"]').value.trim(),
+        rating: document.querySelector('input[name="album-rating"]').value.trim(),
+        authors: [
+          $store.getters.authors.value.find(
+            (a) => a.name === document.querySelector('input[name="album-author"]').value.trim()
+          )?.id || generateAuthorID(),
+        ],
+      };
+
+      $store.dispatch('updateAlbum', updatedAlbum);
+
+      $f7.toast
+        .create({
+          text: 'Album details saved!',
+          closeTimeout: 2000,
+        })
+        .open();
+
+      hasUnsavedChanges = false;
+      document.getElementById('save-album-button').classList.add('hidden');
+    };
+
+    const generateAuthorID = () => {
+      const newID = `author_${Date.now()}`;
+      $store.dispatch('addAuthor', {
+        id: newID,
+        name: document.querySelector('input[name="album-author"]').value.trim(),
+      });
+      return newID;
+    };
+
+    $onMounted(() => {
+      loadAlbumDetails();
+
+      // Add change listeners
+      document.querySelector('input[name="album-title"]').addEventListener('input', onFieldChange);
+      document.querySelector('input[name="album-rating"]').addEventListener('input', onFieldChange);
+      document.querySelector('input[name="album-author"]').addEventListener('input', onFieldChange);
+
+      // Add save button listener
+      document.getElementById('save-album-button').addEventListener('click', saveAlbumDetails);
+    });
+
+    return $render;
+  }
+</script>
