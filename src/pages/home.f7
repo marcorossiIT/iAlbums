@@ -1,19 +1,16 @@
 <template>
   <div class="page" data-name="home">
-    <!-- Top Navbar -->
-    <div class="navbar">
-      <div class="navbar-bg"></div>
-      <div class="navbar-inner">
-        <div class="title sliding">iAlbums</div>
 
-        <!-- Add New Record Button -->
-        <div class="right">
-          <!-- Framework7 icon approach -->
-          <a href="/details/new/" class="link nav-add-button">
-            <i class="icon f7-icons if-not-md">plus</i>
-            <i class="icon material-icons if-md">add</i>
-          </a>
-        </div>
+    <!-- Block Title and Add Button in the Same Section -->
+    <div class="block-title block-title-large"
+      style="display: flex; justify-content: space-between; align-items: center;">
+      <div>iAlbums</div>
+      <div>
+        <!-- Add Button -->
+        <a href="/details/new/" class="link nav-add-button">
+          <i class="icon f7-icons if-not-md">plus</i>
+          <i class="icon material-icons if-md">add</i>
+        </a>
       </div>
     </div>
 
@@ -256,5 +253,12 @@
 
   .nav-add-button i {
     font-size: 24px;
+  }
+
+  /* stylize the add button */
+  b.title-with-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 </style>
