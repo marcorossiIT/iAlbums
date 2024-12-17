@@ -29,32 +29,31 @@ const store = createStore({
     addAlbum({ state, dispatch }, newAlbum) {
       state.albums.push(newAlbum);
       state.lastModified = new Date().toISOString();
-      localStorage.setItem(localStorageKey, JSON.stringify(state));
-      // Attempt to push to remote
+      dispatch('saveToLocalStorage');
       dispatch('pushData');
-    },
-    updateAlbum({ state, dispatch }, updatedAlbum) {
-      const albumIndex = state.albums.findIndex(a => a.id === updatedAlbum.id);
+    }, updateAlbum({ state, dispatch }, updatedAlbum) {
+      const albumIndex = state.albums.findIndex((a) => a.id === updatedAlbum.id);
       if (albumIndex !== -1) {
         state.albums[albumIndex] = { ...state.albums[albumIndex], ...updatedAlbum };
         state.lastModified = new Date().toISOString();
-        localStorage.setItem(localStorageKey, JSON.stringify(state));
-        // Attempt to push to remote
+        dispatch('saveToLocalStorage');
         dispatch('pushData');
       }
     },
-    addAuthor({ state }, newAuthor) {
+
+    addAuthor({ state, dispatch }, newAuthor) {
       state.authors.push(newAuthor);
       state.lastModified = new Date().toISOString();
-      localStorage.setItem(localStorageKey, JSON.stringify(state));
-      // optional: we can push data here, too, or just wait until album is saved
+      dispatch('saveToLocalStorage');
+      dispatch('pushData');
     },
-    addRating({ state }, rating) {
-      // only add if not already in list
+
+    addRating({ state, dispatch }, rating) {
       if (!state.ratings.includes(rating)) {
         state.ratings.push(rating);
         state.lastModified = new Date().toISOString();
-        localStorage.setItem(localStorageKey, JSON.stringify(state));
+        dispatch('saveToLocalStorage');
+        dispatch('pushData');
       }
     },
     loadLocalStorage({ state }) {
@@ -69,7 +68,7 @@ const store = createStore({
         albums: state.albums,
         authors: state.authors,
         ratings: state.ratings,
-        lastModified: new Date().toISOString(),
+        lastModified: state.lastModified || new Date().toISOString(),
       };
       localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     },
@@ -85,57 +84,58 @@ const store = createStore({
           throw new Error(`HTTP error! Status: ${remoteResult.status}`);
         }
         const { record: remoteAlbums } = await remoteResult.json();
-
         const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
 
-        // Compare timestamps
         const remoteTime = remoteAlbums.lastModified ? new Date(remoteAlbums.lastModified) : 0;
         const localTime = localData.lastModified ? new Date(localData.lastModified) : 0;
 
         if (remoteTime > localTime) {
-          // Remote is newer, so overwrite local
+          // Remote data is newer; use it
           localStorage.setItem(localStorageKey, JSON.stringify(remoteAlbums));
           dispatch('loadLocalStorage');
         } else if (localTime > remoteTime) {
-          // Local is newer, push to remote
+          // Local data is newer; push it
           dispatch('pushData');
         } else {
-          // They are same or no data... just load local
+          // Both are same or no data, load local
           dispatch('loadLocalStorage');
         }
       } catch (error) {
-        console.error('Error syncing data:', error);
-        // fallback to local
+        console.error('Error fetching remote data:', error);
         dispatch('loadLocalStorage');
       }
     },
 
     async pushData({ state }) {
       try {
-        // push (PUT) the entire state back to JSONBIN
+        const payload = {
+          albums: state.albums,
+          authors: state.authors,
+          ratings: state.ratings,
+          lastModified: new Date().toISOString(),
+        };
+
         const response = await fetch(remoteDataURL, {
-          method: 'PUT', 
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'X-Access-Key': remoteDataAPIKey,
           },
-          body: JSON.stringify({
-            albums: state.albums,
-            authors: state.authors,
-            ratings: state.ratings,
-            lastModified: state.lastModified
-          }),
+          body: JSON.stringify(payload),
         });
+
         if (!response.ok) {
-          console.error('Failed to push data to remote:', response.statusText);
-        } else {
-          console.log('Local data successfully pushed to remote JSONBIN');
+          throw new Error('Failed to push data to remote');
         }
-      } catch (err) {
-        console.error('pushData error:', err);
+
+        console.log('Data successfully pushed to remote');
+        localStorage.setItem(localStorageKey, JSON.stringify(payload));
+        state.lastModified = payload.lastModified;
+      } catch (error) {
+        console.error('Error pushing data:', error);
       }
     },
-    
+
   },
 });
 
