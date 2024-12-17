@@ -130,11 +130,7 @@
                 })
                 .join(', ');
 
-              const ratingIcon = {
-                meh: 'Meh 😐',
-                good: 'Good 😊',
-                bad: 'Bad 😢',
-              }[album.rating];
+
 
               return `
                 <li>
@@ -144,7 +140,7 @@
                       <div class="item-after">
                         <span class="item-authors" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${authorNames}</span>
                       </div>
-                      <div class="item-rating">${ratingIcon}</div>
+                      <div class="item-rating">${album.rating}</div>
                     </div>
                   </a>
                 </li>`;
