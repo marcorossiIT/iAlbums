@@ -25,18 +25,36 @@ const store = createStore({
     },
   },
   actions: {
-    updateAlbum({ state }, updatedAlbum) {
-      const albumIndex = state.albums.findIndex((album) => album.id === updatedAlbum.id);
+    // Adds a brand new album
+    addAlbum({ state, dispatch }, newAlbum) {
+      state.albums.push(newAlbum);
+      state.lastModified = new Date().toISOString();
+      dispatch('saveToLocalStorage');
+      dispatch('pushData');
+    }, updateAlbum({ state, dispatch }, updatedAlbum) {
+      const albumIndex = state.albums.findIndex((a) => a.id === updatedAlbum.id);
       if (albumIndex !== -1) {
         state.albums[albumIndex] = { ...state.albums[albumIndex], ...updatedAlbum };
         state.lastModified = new Date().toISOString();
-        localStorage.setItem('albumsData', JSON.stringify(state));
+        dispatch('saveToLocalStorage');
+        dispatch('pushData');
       }
     },
-    addAuthor({ state }, newAuthor) {
+
+    addAuthor({ state, dispatch }, newAuthor) {
       state.authors.push(newAuthor);
       state.lastModified = new Date().toISOString();
-      localStorage.setItem('albumsData', JSON.stringify(state));
+      dispatch('saveToLocalStorage');
+      dispatch('pushData');
+    },
+
+    addRating({ state, dispatch }, rating) {
+      if (!state.ratings.includes(rating)) {
+        state.ratings.push(rating);
+        state.lastModified = new Date().toISOString();
+        dispatch('saveToLocalStorage');
+        dispatch('pushData');
+      }
     },
     loadLocalStorage({ state }) {
       const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
@@ -50,44 +68,74 @@ const store = createStore({
         albums: state.albums,
         authors: state.authors,
         ratings: state.ratings,
-        lastModified: new Date().toISOString(),
+        lastModified: state.lastModified || new Date().toISOString(),
       };
       localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     },
-    async fetchData({ dispatch }) {
+    async fetchData({ dispatch, state }) {
       try {
         const remoteResult = await fetch(remoteDataURL, {
           headers: {
-
             'X-Access-Key': remoteDataAPIKey,
             'X-Bin-Meta': true,
-          }
-
+          },
         });
-
         if (!remoteResult.ok) {
-          console.error('getting gist data error:', await remoteResult.text());
-          throw new Error(`getting gist HTTP error! Status: ${remoteResult.status}`);
+          throw new Error(`HTTP error! Status: ${remoteResult.status}`);
         }
-
-
-
-        const remoteAlbums = (await remoteResult.json()).record;
+        const { record: remoteAlbums } = await remoteResult.json();
         const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
 
+        const remoteTime = remoteAlbums.lastModified ? new Date(remoteAlbums.lastModified) : 0;
+        const localTime = localData.lastModified ? new Date(localData.lastModified) : 0;
 
-        // Compare timestamps and update local storage if needed
-        if (!localData.lastModified || new Date(remoteAlbums.lastModified) > new Date(localData.lastModified)) {
+        if (remoteTime > localTime) {
+          // Remote data is newer; use it
           localStorage.setItem(localStorageKey, JSON.stringify(remoteAlbums));
-          console.log('Local storage updated with data from Gist.');
-          dispatch('loadLocalStorage'); // Refresh the state
+          dispatch('loadLocalStorage');
+        } else if (localTime > remoteTime) {
+          // Local data is newer; push it
+          dispatch('pushData');
+        } else {
+          // Both are same or no data, load local
+          dispatch('loadLocalStorage');
         }
       } catch (error) {
-        console.error('Error syncing data:', error);
-        // Fallback: Load from local storage
+        console.error('Error fetching remote data:', error);
         dispatch('loadLocalStorage');
       }
     },
+
+    async pushData({ state }) {
+      try {
+        const payload = {
+          albums: state.albums,
+          authors: state.authors,
+          ratings: state.ratings,
+          lastModified: new Date().toISOString(),
+        };
+
+        const response = await fetch(remoteDataURL, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Access-Key': remoteDataAPIKey,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to push data to remote');
+        }
+
+        console.log('Data successfully pushed to remote');
+        localStorage.setItem(localStorageKey, JSON.stringify(payload));
+        state.lastModified = payload.lastModified;
+      } catch (error) {
+        console.error('Error pushing data:', error);
+      }
+    },
+
   },
 });
 

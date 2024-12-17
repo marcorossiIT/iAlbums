@@ -1,7 +1,7 @@
 <template>
   <div class="page" data-name="album-details">
     <!-- Top Navbar -->
-    <div class="navbar navbar-large">
+    <div class="navbar">
       <div class="navbar-bg"></div>
       <div class="navbar-inner">
         <div class="left">
@@ -68,33 +68,45 @@
 
 <script>
   export default function (props, { $store, $onMounted, $f7 }) {
-    let albumName = '';
-    let albumRating = '';
-    let albumAuthor = '';
     let hasUnsavedChanges = false;
 
+    // We’ll keep references to the input elements:
+    let inputTitle, inputRating, inputAuthor;
+
+    // Identify if we’re creating a new album or editing existing
+    const isNewRecord = props.albumID === 'new';
+
     const loadAlbumDetails = () => {
-      const album = $store.getters.albums.value.find((a) => a.id === props.albumID);
-      if (album) {
-        const author = $store.getters.authors.value.find((a) => a.id === album.authors[0]) || {};
-        albumName = album.title;
-        albumRating = album.rating;
-        albumAuthor = author.name || 'Unknown Author';
-      }
       const ratings = $store.getters.ratings.value;
 
-      // Populate fields
-      document.querySelector('input[name="album-title"]').value = albumName;
-      document.querySelector('input[name="album-rating"]').value = albumRating;
-      document.querySelector('input[name="album-author"]').value = albumAuthor;
-
-      // Populate rating options
+      // Populate rating <datalist>
       const ratingOptions = document.getElementById('rating-options');
+      ratingOptions.innerHTML = '';
       ratings.forEach((rating) => {
         const option = document.createElement('option');
         option.value = rating;
         ratingOptions.appendChild(option);
       });
+
+      inputTitle = document.querySelector('input[name="album-title"]');
+      inputRating = document.querySelector('input[name="album-rating"]');
+      inputAuthor = document.querySelector('input[name="album-author"]');
+
+      if (isNewRecord) {
+        // Clear fields for a new album
+        inputTitle.value = '';
+        inputRating.value = '';
+        inputAuthor.value = '';
+      } else {
+        // Existing album: load data from the store
+        const album = $store.getters.albums.value.find((a) => a.id === props.albumID);
+        if (album) {
+          inputTitle.value = album.title;
+          inputRating.value = album.rating;
+          const author = $store.getters.authors.value.find(a => a.id === album.authors[0]);
+          inputAuthor.value = author ? author.name : '';
+        }
+      }
     };
 
     const onFieldChange = () => {
@@ -104,49 +116,80 @@
       }
     };
 
+    const generateUniqueID = () => {
+      return 'album_' + Date.now();
+    };
+
+    const generateAuthorID = (authorName) => {
+      const newID = `author_${Date.now()}`;
+      $store.dispatch('addAuthor', { id: newID, name: authorName });
+      return newID;
+    };
+
     const saveAlbumDetails = () => {
-      const updatedAlbum = {
-        id: props.albumID,
-        title: document.querySelector('input[name="album-title"]').value.trim(),
-        rating: document.querySelector('input[name="album-rating"]').value.trim(),
-        authors: [
-          $store.getters.authors.value.find(
-            (a) => a.name === document.querySelector('input[name="album-author"]').value.trim()
-          )?.id || generateAuthorID(),
-        ],
-      };
+      const titleVal = inputTitle.value.trim();
+      const ratingVal = inputRating.value.trim();
+      let authorVal = inputAuthor.value.trim();
 
-      $store.dispatch('updateAlbum', updatedAlbum);
+      if (!titleVal) {
+        $f7.dialog.alert('Album title is required!');
+        return;
+      }
 
-      $f7.toast
-        .create({
-          text: 'Album details saved!',
-          closeTimeout: 2000,
-        })
-        .open();
+      if (!authorVal) {
+        authorVal = 'Unknown Author';
+      }
+
+      // if rating is new, add it to store
+      if (ratingVal && !$store.getters.ratings.value.includes(ratingVal)) {
+        $store.dispatch('addRating', ratingVal);
+      }
+
+      let authorObj = $store.getters.authors.value.find(a => a.name === authorVal);
+      let authorID = authorObj ? authorObj.id : generateAuthorID(authorVal);
+
+
+      if (isNewRecord) {
+        // Create a new album object
+        const newAlbum = {
+          id: generateUniqueID(),
+          title: titleVal,
+          rating: ratingVal || 'meh',
+          authors: [authorID],
+        };
+        $store.dispatch('addAlbum', newAlbum);
+
+        $f7.toast.create({ text: 'New album added!', closeTimeout: 2000 }).open();
+      } else {
+        // Update existing album
+        const updatedAlbum = {
+          id: props.albumID,
+          title: titleVal,
+          rating: ratingVal,
+          authors: [authorID],
+        };
+        $store.dispatch('updateAlbum', updatedAlbum);
+
+        $f7.toast.create({ text: 'Album details saved!', closeTimeout: 2000 }).open();
+      }
 
       hasUnsavedChanges = false;
       document.getElementById('save-album-button').classList.add('hidden');
     };
 
-    const generateAuthorID = () => {
-      const newID = `author_${Date.now()}`;
-      $store.dispatch('addAuthor', {
-        id: newID,
-        name: document.querySelector('input[name="album-author"]').value.trim(),
-      });
-      return newID;
-    };
-
     $onMounted(() => {
       loadAlbumDetails();
 
-      // Add change listeners
-      document.querySelector('input[name="album-title"]').addEventListener('input', onFieldChange);
-      document.querySelector('input[name="album-rating"]').addEventListener('input', onFieldChange);
-      document.querySelector('input[name="album-author"]').addEventListener('input', onFieldChange);
+      inputTitle = document.querySelector('input[name="album-title"]');
+      inputRating = document.querySelector('input[name="album-rating"]');
+      inputAuthor = document.querySelector('input[name="album-author"]');
 
-      // Add save button listener
+      // Listen for changes
+      inputTitle.addEventListener('input', onFieldChange);
+      inputRating.addEventListener('input', onFieldChange);
+      inputAuthor.addEventListener('input', onFieldChange);
+
+      // Save button click
       document.getElementById('save-album-button').addEventListener('click', saveAlbumDetails);
     });
 
