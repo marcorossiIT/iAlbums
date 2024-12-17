@@ -1,7 +1,7 @@
 <template>
   <div class="page" data-name="album-details">
     <!-- Top Navbar -->
-    <div class="navbar navbar-large">
+    <div class="navbar">
       <div class="navbar-bg"></div>
       <div class="navbar-inner">
         <div class="left">
