@@ -184,7 +184,13 @@
       $store.dispatch('loadLocalStorage'); // Load data from local storage
       sortAlbums(); // Initial sort and render
 
-      
+      // Listen for pageBeforeIn every time user navigates back
+      const pageEl = document.querySelector('.page[data-name="home"]');
+      pageEl.addEventListener('page:beforein', () => {
+        // re-load local storage and re-render albums
+        $store.dispatch('loadLocalStorage');
+        sortAlbums();
+      });
 
     });
 
@@ -251,6 +257,7 @@
     display: flex;
     align-items: center;
   }
+
   .nav-add-button i {
     font-size: 24px;
   }

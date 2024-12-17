@@ -129,11 +129,25 @@
     const saveAlbumDetails = () => {
       const titleVal = inputTitle.value.trim();
       const ratingVal = inputRating.value.trim();
-      const authorVal = inputAuthor.value.trim();
+      let authorVal = inputAuthor.value.trim();
 
-      // If the author doesn’t exist, create a new one:
+      if (!titleVal) {
+        $f7.dialog.alert('Album title is required!');
+        return;
+      }
+
+      if (!authorVal) {
+        authorVal = 'Unknown Author';
+      }
+
+      // if rating is new, add it to store
+      if (ratingVal && !$store.getters.ratings.value.includes(ratingVal)) {
+        $store.dispatch('addRating', ratingVal);
+      }
+
       let authorObj = $store.getters.authors.value.find(a => a.name === authorVal);
       let authorID = authorObj ? authorObj.id : generateAuthorID(authorVal);
+
 
       if (isNewRecord) {
         // Create a new album object
