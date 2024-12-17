@@ -25,6 +25,12 @@ const store = createStore({
     },
   },
   actions: {
+    // Adds a brand new album
+    addAlbum({ state }, newAlbum) {
+      state.albums.push(newAlbum);
+      state.lastModified = new Date().toISOString();
+      localStorage.setItem(localStorageKey, JSON.stringify(state));
+    },
     updateAlbum({ state }, updatedAlbum) {
       const albumIndex = state.albums.findIndex((album) => album.id === updatedAlbum.id);
       if (albumIndex !== -1) {

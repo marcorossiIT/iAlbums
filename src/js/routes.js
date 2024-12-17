@@ -28,6 +28,13 @@ var routes = [
     path: '/dynamic-route/blog/:blogId/post/:postId/',
     component: DynamicRoutePage,
   },
+
+  {
+    path: '/details/new/',  // ABOVE the dinamic route so it gets priority
+    component: AlbumDetailsPage,
+    // Force prop 'new' so the details page sees albumID === 'new'
+    props: { albumID: 'new' },
+  },
   {
     path: '/details/:albumID/',
     component: AlbumDetailsPage,

@@ -1,17 +1,22 @@
 <template>
   <div class="page" data-name="home">
     <!-- Top Navbar -->
-    <div class="navbar navbar-large">
+    <div class="navbar">
       <div class="navbar-bg"></div>
       <div class="navbar-inner">
         <div class="title sliding">iAlbums</div>
-        <div class="title-large">
-          <div class="title-large-text">iAlbums</div>
-        </div>
-        <!-- Sync Icon Button -->
 
+        <!-- Add New Record Button -->
+        <div class="right">
+          <!-- Framework7 icon approach -->
+          <a href="/details/new/" class="link nav-add-button">
+            <i class="icon f7-icons if-not-md">plus</i>
+            <i class="icon material-icons if-md">add</i>
+          </a>
+        </div>
       </div>
     </div>
+
 
     <!-- List Index -->
     <div class="list-index"></div>
@@ -162,7 +167,13 @@
       });
     };
 
-    let listIndex;
+
+
+    // Clicking the "+" button should navigate to /details/new
+    const goToAddAlbum = () => {
+      $f7.views.main.router.navigate('/details/new/');
+    };
+
 
     // Lifecycle: On Mounted
     $onMounted(async () => {
@@ -173,7 +184,12 @@
       $store.dispatch('loadLocalStorage'); // Load data from local storage
       sortAlbums(); // Initial sort and render
 
+      
+
     });
+
+
+    let listIndex;
 
     // Lifecycle: On Before Unmount
     $onBeforeUnmount(() => {
@@ -227,5 +243,15 @@
   /* Optional: Change sync icon color when active */
   .sync-button.syncing {
     color: var(--f7-color-primary);
+  }
+
+  /* "Add" button in the navbar */
+  .nav-add-button {
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+  }
+  .nav-add-button i {
+    font-size: 24px;
   }
 </style>
