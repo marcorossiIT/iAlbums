@@ -84,6 +84,94 @@ const store = createStore({
           throw new Error(`HTTP error! Status: ${remoteResult.status}`);
         }
         const { record: remoteAlbums } = await remoteResult.json();
+
+        // ====== MOCK DATA ===== //
+        const mockData = JSON.parse(`{
+  "albums": [
+    {
+      "id": "<hash_1>",
+      "title": "album11",
+      "authors": [
+        "author_1734455284222"
+      ],
+      "rating": "goods"
+    },
+    {
+      "id": "<hash_1>",
+      "title": "Clbum11",
+      "authors": [
+        "author_1734455284222"
+      ],
+      "rating": "aah"
+    },
+    {
+      "id": "<hash_1>",
+      "title": "balbum2",
+      "authors": [
+        "author_1734455284222"
+      ],
+      "rating": "goods"
+    },
+    {
+      "id": "<hash_1>",
+      "title": "balbum11",
+      "authors": [
+        "author_1734445908308"
+      ],
+      "rating": "meh"
+    },
+    {
+      "id": "<hash_1>",
+      "title": "album11",
+      "authors": [
+        "author_1734407204797"
+      ],
+      "rating": "goods"
+    }
+  ],
+  "authors": [
+    {
+      "id": "author_1734407204797",
+      "name": "pippox"
+    },
+    {
+      "id": "author_unknown",
+      "name": "Unknown Author"
+    },
+    {
+      "id": "author_1734409305339",
+      "name": "ll"
+    },
+    {
+      "id": "author_1734445908308",
+      "name": "Lenin"
+    },
+    {
+      "id": "author_1734447416683",
+      "name": "aaafffaf"
+    },
+    {
+      "id": "author_1734448620243",
+      "name": "rino"
+    },
+    {
+      "id": "author_1734448647870",
+      "name": "Ryno"
+    },
+    {
+      "id": "author_1734455284222",
+      "name": "pippos"
+    }
+  ],
+  "ratings": [
+    "good",
+    "aa",
+    "meh",
+    "goods"
+  ],
+  "lastModified": "2024-12-17T17:08:19.551Z"
+}`);
+
         const localData = JSON.parse(localStorage.getItem(localStorageKey)) || {};
 
         const remoteTime = remoteAlbums.lastModified ? new Date(remoteAlbums.lastModified) : 0;

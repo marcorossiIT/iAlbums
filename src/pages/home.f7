@@ -23,18 +23,15 @@
         <p>La tua lista di Album!</p>
       </div>
       <div class="block">
-        <p class="block">
         <div class="segmented segmented-strong">
-          <button class="button" :class="{ 'button-active': activeSort === 'title' }"
-            @click="setSort('title')">Title</button>
-          <button class="button" :class="{ 'button-active': activeSort === 'year' }"
-            @click="setSort('year')">Year</button>
-          <button class="button" :class="{ 'button-active': activeSort === 'rating' }"
-            @click="setSort('rating')">Rating</button>
+          <button class="button" data-sort="title">Title</button>
+          <button class="button" data-sort="author">Author</button>
+          <button class="button" data-sort="rating">Rating</button>
           <span class="segmented-highlight"></span>
         </div>
+
       </div>
-      </p>
+
 
       <div class="list contacts-list">
         <!-- Album groups will be dynamically inserted here -->
@@ -83,42 +80,78 @@
       $update(); // Update the component to reflect changes
     };
 
-    const sortAlbums = () => {
+    // Helper function to remove active class and set the new active button
+    const setActiveButton = (activeButton) => {
+      const segmentedButtons = document.querySelectorAll('.segmented .button');
+      segmentedButtons.forEach((button) => button.classList.remove('button-active'));
+      activeButton.classList.add('button-active');
+    };
 
-
+    const sortAlbums = (criterion) => {
       const albums = [...$store.getters.albums.value]; // Clone the albums array
-      albums.sort((a, b) => {
-        if (activeSort === 'title') return a.title.localeCompare(b.title);
-        if (activeSort === 'year') return a.year - b.year;
-        if (activeSort === 'rating') return a.rating.localeCompare(b.rating);
-      });
+      switch (criterion) {
+        case 'title':
+          albums.sort((a, b) => a.title.localeCompare(b.title));
+          break;
+        case 'author':
+          albums.sort((a, b) => a.authors[0].localeCompare(b.authors[0]));
+          break;
+        case 'rating':
+          albums.sort((a, b) => a.rating.localeCompare(b.rating));
+          break;
+        default:
+          console.warn('Invalid sort criterion:', criterion, 'resorting to default');
+          albums.sort((a, b) => a.title.localeCompare(b.title))
+      }
       renderAlbums(albums);
     };
 
     const renderAlbums = (albums) => {
-      console.log('Loaded s:', albums);
+      console.log('rendering albums:', albums);
       const listEl = document.querySelector('.contacts-list');
       listEl.innerHTML = ''; // Clear existing content
 
-      // Group albums alphabetically
-      const groupedAlbums = albums.reduce((groups, album) => {
-        const letter = album.title[0].toUpperCase();
-        if (!groups[letter]) groups[letter] = [];
-        groups[letter].push(album);
-        return groups;
-      }, {});
+      let groupedAlbums;
 
-      // Get group indexes (A-Z)
+      if (activeSort === 'author') {
+        // Group by first author
+        groupedAlbums = albums.reduce((groups, album) => {
+          const authorId = album.authors[0];
+          const author = $store.getters.authors.value.find((a) => a.id === authorId);
+          const authorNameLetter = author ? author.name[0].toUpperCase() : '-';
+          if (!groups[authorNameLetter]) groups[authorNameLetter] = [];
+          groups[authorNameLetter].push(album);
+          return groups;
+        }, {});
+      } else if (activeSort === 'rating') {
+        // Group by rating
+        groupedAlbums = albums.reduce((groups, album) => {
+          const letter = album.rating[0].toUpperCase() || 'No Rating';
+          if (!groups[letter]) groups[letter] = [];
+          groups[letter].push(album);
+          return groups;
+        }, {});
+      } else {
+        // Default grouping (by title's first letter)
+        groupedAlbums = albums.reduce((groups, album) => {
+          const letter = album.title[0].toUpperCase();
+          if (!groups[letter]) groups[letter] = [];
+          groups[letter].push(album);
+          return groups;
+        }, {});
+      }
+
+      // Get group indexes (sorted keys)
       const indexes = Object.keys(groupedAlbums).sort();
 
       // Populate the list with grouped albums
-      indexes.forEach((letter) => {
+      indexes.forEach((key) => {
         const groupEl = document.createElement('div');
         groupEl.className = 'list-group';
         groupEl.innerHTML = `
-        <ul>
-          <li class="list-group-title">${letter}</li>
-          ${groupedAlbums[letter]
+      <ul>
+        <li class="list-group-title">${key}</li>
+        ${groupedAlbums[key]
             .map((album) => {
               const authorNames = album.authors
                 .map((id) => {
@@ -127,25 +160,22 @@
                 })
                 .join(', ');
 
-
-
               return `
-                <li>
-                  <a href="/details/${album.id}/" class="item-link item-content">
-                    <div class="item-inner">
-                      <div class="item-title">${album.title}</div>
-                      <div class="item-after">
-                        <span class="item-authors" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${authorNames}</span>
-                      </div>
-                      <div class="item-rating">${album.rating}</div>
+              <li>
+                <a href="/details/${album.id}/" class="item-link item-content">
+                  <div class="item-inner">
+                    <div class="item-title">${album.title}</div>
+                    <div class="item-after">
+                      <span class="item-authors" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${authorNames}</span>
                     </div>
-                  </a>
-                </li>`;
-
+                    <div class="item-rating">${album.rating}</div>
+                  </div>
+                </a>
+              </li>`;
             })
             .join('')}
-        </ul>
-      `;
+      </ul>
+    `;
         listEl.appendChild(groupEl);
       });
 
@@ -161,12 +191,10 @@
     };
 
 
-
     // Clicking the "+" button should navigate to /details/new
     const goToAddAlbum = () => {
       $f7.views.main.router.navigate('/details/new/');
     };
-
 
     // Lifecycle: On Mounted
     $onMounted(async () => {
@@ -177,14 +205,15 @@
       $store.dispatch('loadLocalStorage'); // Load data from local storage
       sortAlbums(); // Initial sort and render
 
-      // Listen for pageBeforeIn every time user navigates back
-      const pageEl = document.querySelector('.page[data-name="home"]');
-      pageEl.addEventListener('page:beforein', () => {
-        // re-load local storage and re-render albums
+
+
+    });
+    // Listen for pageBeforeIn every time user navigates back
+    $f7.on('pageBeforeIn', (page) => {
+      if (page.name === 'home') {
         $store.dispatch('loadLocalStorage');
         sortAlbums();
-      });
-
+      }
     });
 
 
@@ -193,11 +222,35 @@
     // Lifecycle: On Before Unmount
     $onBeforeUnmount(() => {
       if (listIndex) listIndex.destroy();
+      $f7.off('pageBeforeIn'); // Remove listener to avoid memory leaks
+    });
+
+    // Lifecycle: Page Init
+    $f7.on('pageInit', (page) => {
+      if (page.name === 'home') {
+        const segmentedButtons = document.querySelectorAll('.segmented .button');
+
+        // Add click event listeners to each button
+        segmentedButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const sortCriterion = button.dataset.sort;
+            if (activeSort !== sortCriterion) {
+              activeSort = sortCriterion;
+              setActiveButton(button);
+
+              // Call your sorting logic here
+              console.log(`Sorting by: ${sortCriterion}`);
+              sortAlbums(sortCriterion); // Pass activeSort to your sorting function
+            }
+          });
+        });
+      }
     });
 
     // Return the render function
     return $render;
   }
+
 </script>
 <style>
   /* Minimalistic rating styles */
