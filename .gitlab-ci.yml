@@ -19,6 +19,7 @@ build:
 
 pages:
   stage: deploy
+  pages: true
   script:
     - mv www public
   artifacts:
