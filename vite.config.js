@@ -11,7 +11,7 @@ export default async () => {
       framework7({ emitCss: false }),
     ],
     root: SRC_DIR,
-    base: '/ialbums', // Use '/' as the base path
+    base: '', 
     publicDir: PUBLIC_DIR,
     build: {
       outDir: BUILD_DIR,
