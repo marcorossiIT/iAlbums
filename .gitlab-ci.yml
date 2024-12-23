@@ -1,4 +1,4 @@
-image: node:18
+image: node:20
 
 stages:
   - build
@@ -15,12 +15,12 @@ build:
     - npm run build
   artifacts:
     paths:
-      - www/
+      - www
 
 pages:
   stage: deploy
   script:
-    - cp -r www/ public/
+    - mv www public
   artifacts:
     paths:
       - public
