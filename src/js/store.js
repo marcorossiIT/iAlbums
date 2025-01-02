@@ -99,9 +99,9 @@ const store = createStore({
 
       // update local
       //   edit last edit time
+      state.lastModified = new Date().toISOString();
       //   add album
       state.albums[crypto.createHash('sha1').update(JSON.stringify(newAlbum)).digest('hex')] = newAlbumDetails;
-      state.lastModified = new Date().toISOString();
 
       // optional check last edit time per conflitti 
 
@@ -125,6 +125,7 @@ const store = createStore({
 
       // update local
       //   edit last edit time
+      state.lastModified = new Date().toISOString();
       //   update album
       state.albums[uppedAlbumDetails.id] = uppedAlbumDetails; // TODO fare reactive
 
