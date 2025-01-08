@@ -1,317 +1,181 @@
 <template>
   <div class="page" data-name="home">
-
-    <!-- Block Title and Add Button in the Same Section -->
-    <div class="block-title block-title-large"
-      style="display: flex; justify-content: space-between; align-items: center;">
-      <div>iAlbums</div>
-      <div>
-        <!-- Add Button -->
-        <a href="/details/new/" class="link nav-add-button">
-          <i class="icon f7-icons if-not-md">plus</i>
-          <i class="icon material-icons if-md">add</i>
-        </a>
+    <!-- Title and Add Button -->
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="title">iAlbums</div>
+        <div class="right">
+          <a href="/details/new/" class="link">
+            <i class="icon f7-icons if-not-md">plus</i>
+            <i class="icon material-icons if-md">add</i>
+          </a>
+        </div>
       </div>
     </div>
 
-
-    <!-- List Index -->
-    <div class="list-index"></div>
-
     <div class="page-content">
+      <!-- Search Bar -->
       <div class="block">
-        <p>La tua lista di Album!</p>
-      </div>
-      <div class="block">
-        <div class="segmented segmented-strong">
-          <button class="button" data-sort="title">Title</button>
-          <button class="button" data-sort="author">Author</button>
-          <button class="button" data-sort="rating">Rating</button>
-          <span class="segmented-highlight"></span>
+        <div class="searchbar">
+          <input type="search" placeholder="Search albums..." id="searchBar" />
         </div>
-
       </div>
 
+      <!-- Sorting Options -->
+      <div class="block">
+        <div class="list simple-list">
+          <select id="sortSelect">
+            <option value="title">Sort by Title</option>
+            <option value="author">Sort by Author</option>
+            <option value="year">Sort by Year</option>
+            <option value="rating">Sort by Rating</option>
+          </select>
+        </div>
+      </div>
 
-      <div class="list contacts-list">
-        <!-- Album groups will be dynamically inserted here -->
+      <!-- Album List -->
+      <div class="list media-list">
+        <ul id="albumList"></ul>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-  export default function (props, { $f7, $onMounted, $onBeforeUnmount, $update, $store }) {
+  export default function (props, { $f7, $onMounted, $onBeforeUnmount, $onUpdated, $update, $store }) {
 
-    let activeSort = 'title';
-    let syncing = false; // Tracks whether sync is in progress
+    let albums = [];
+    let searchQuery = '';
+    let sortCriterion = 'title';
+    let listIndex;
 
-    const syncData = async () => {
-      if (syncing) return; // Prevent multiple syncs
+    const fetchAlbums = async () => {
+      await $store.dispatch('getRemote');
 
-      console.info('I\'m Syncing')
+      const storeAlbums = Object.entries($store.getters.albums.value || {}).map(([key, album]) => ({
+        ...album,
+        id: key,
+        authors: album.authors || ['Unknown Author'], // sostituisce con un generico unknown
+      }));
+      albums = storeAlbums;
+      console.log('gotten albums', albums);
 
-      syncing = true;
-      $update(); // Update the UI to show the spinner
+      applySortingAndFiltering();
+    };
 
-      try {
-        await $store.dispatch('fetchData'); // Trigger sync
-        $f7.toast.create({
-          text: 'Data synced successfully!',
-          closeTimeout: 2000,
-          closeButton: true,
-        }).open();
-      } catch (error) {
-        console.error('Sync failed:', error);
-        $f7.toast.create({
-          text: 'Sync failed. Please try again later.',
-          closeTimeout: 2000,
-          closeButton: true,
-        }).open();
-      } finally {
-        syncing = false;
-        $update(); // Hide the spinner
+    const applySortingAndFiltering = () => {
+      const query = searchQuery.toLowerCase();
+      const sorted = [...albums].sort((a, b) => {
+        if (sortCriterion === 'title') return a.title.localeCompare(b.title);
+        if (sortCriterion === 'author') return a.authors[0].localeCompare(b.authors[0]);
+        if (sortCriterion === 'year') return a.year - b.year;
+        if (sortCriterion === 'rating') return a.rating.localeCompare(b.rating);
+      });
+
+      const filtered = sorted.filter((album) =>
+        Object.values(album).some((value) =>
+          value.toString().toLowerCase().includes(query)
+        )
+      );
+
+      renderAlbums(filtered);
+    };
+
+    const renderAlbums = (filteredAlbums) => {
+      const albumList = document.getElementById('albumList');
+      albumList.innerHTML = ''; // Clear existing list items
+
+      filteredAlbums.forEach((album) => {
+        console.debug('albums displayed', album)
+        const listItem = document.createElement('li');
+        listItem.innerHTML = `
+  <a href="/details/${album.id}/" class="item-link item-content">
+    <div class="item-inner">
+      <div class="item-title-row">
+        <div class="item-title">${album.title}</div>
+        <div class="item-after">${album.rating}</div>
+      </div>
+      <div class="item-subtitle" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        ${album.authors.join(', ')}
+      </div>
+    </div>
+  </a>
+`;
+
+        albumList.appendChild(listItem);
+      });
+      // Initialize the list index (if needed)
+      const listIndexEl = document.querySelector('.list-index');
+      if (listIndexEl) {
+        if (listIndex) listIndex.destroy();
+        listIndex = $f7.listIndex.create({
+          el: listIndexEl,
+          listEl: albumList,
+          indexes: Array.from(new Set(filteredAlbums.map((a) => a.title[0].toUpperCase()))),
+          scrollList: true,
+          label: true,
+        });
       }
+
+    };
+
+    const onSearch = (event) => {
+      searchQuery = event.target.value;
+      applySortingAndFiltering();
     };
 
     const setSort = (criterion) => {
-      activeSort = criterion;
-      sortAlbums();
-      $update(); // Update the component to reflect changes
+      sortCriterion = criterion;
+      applySortingAndFiltering();
     };
 
-    // Helper function to remove active class and set the new active button
-    const setActiveButton = (activeButton) => {
-      const segmentedButtons = document.querySelectorAll('.segmented .button');
-      segmentedButtons.forEach((button) => button.classList.remove('button-active'));
-      activeButton.classList.add('button-active');
-    };
+    $onMounted(() => {
+      const searchBar = document.getElementById('searchBar');
+      const sortSelect = document.getElementById('sortSelect');
 
-    const sortAlbums = (criterion) => {
-      const albums = [...$store.getters.albums.value]; // Clone the albums array
-      switch (criterion) {
-        case 'title':
-          albums.sort((a, b) => a.title.localeCompare(b.title));
-          break;
-        case 'author':
-          albums.sort((a, b) => a.authors[0].localeCompare(b.authors[0]));
-          break;
-        case 'rating':
-          albums.sort((a, b) => a.rating.localeCompare(b.rating));
-          break;
-        default:
-          console.warn('Invalid sort criterion:', criterion, 'resorting to default');
-          albums.sort((a, b) => a.title.localeCompare(b.title))
-      }
-      renderAlbums(albums);
-    };
-
-    const renderAlbums = (albums) => {
-      console.log('rendering albums:', albums);
-      const listEl = document.querySelector('.contacts-list');
-      listEl.innerHTML = ''; // Clear existing content
-
-      let groupedAlbums;
-
-      if (activeSort === 'author') {
-        // Group by first author
-        groupedAlbums = albums.reduce((groups, album) => {
-          const authorId = album.authors[0];
-          const author = $store.getters.authors.value.find((a) => a.id === authorId);
-          const authorNameLetter = author ? author.name[0].toUpperCase() : '-';
-          if (!groups[authorNameLetter]) groups[authorNameLetter] = [];
-          groups[authorNameLetter].push(album);
-          return groups;
-        }, {});
-      } else if (activeSort === 'rating') {
-        // Group by rating
-        groupedAlbums = albums.reduce((groups, album) => {
-          const letter = album.rating[0].toUpperCase() || 'No Rating';
-          if (!groups[letter]) groups[letter] = [];
-          groups[letter].push(album);
-          return groups;
-        }, {});
-      } else {
-        // Default grouping (by title's first letter)
-        groupedAlbums = albums.reduce((groups, album) => {
-          const letter = album.title[0].toUpperCase();
-          if (!groups[letter]) groups[letter] = [];
-          groups[letter].push(album);
-          return groups;
-        }, {});
-      }
-
-      // Get group indexes (sorted keys)
-      const indexes = Object.keys(groupedAlbums).sort();
-
-      // Populate the list with grouped albums
-      indexes.forEach((key) => {
-        const groupEl = document.createElement('div');
-        groupEl.className = 'list-group';
-        groupEl.innerHTML = `
-      <ul>
-        <li class="list-group-title">${key}</li>
-        ${groupedAlbums[key]
-            .map((album) => {
-              const authorNames = album.authors
-                .map((id) => {
-                  const author = $store.getters.authors.value.find((a) => a.id === id);
-                  return author ? author.name : 'Unknown Author';
-                })
-                .join(', ');
-
-              return `
-              <li>
-                <a href="/details/${album.id}/" class="item-link item-content">
-                  <div class="item-inner">
-                    <div class="item-title">${album.title}</div>
-                    <div class="item-after">
-                      <span class="item-authors" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${authorNames}</span>
-                    </div>
-                    <div class="item-rating">${album.rating}</div>
-                  </div>
-                </a>
-              </li>`;
-            })
-            .join('')}
-      </ul>
-    `;
-        listEl.appendChild(groupEl);
+      searchBar.addEventListener('input', onSearch);
+      sortSelect.addEventListener('change', (event) => setSort(event.target.value));
+      // Setup pageInit listener
+      $f7.on('pageInit', (page) => {
+        if (page.name === 'home') {
+          console.log('Home page initialized');
+        }
       });
 
-      // Initialize the List Index
-      const listIndexEl = document.querySelector('.list-index');
-      const listIndex = $f7.listIndex.create({
-        el: listIndexEl,
-        listEl,
-        indexes,
-        scrollList: true,
-        label: true,
-      });
-    };
-
-
-    // Clicking the "+" button should navigate to /details/new
-    const goToAddAlbum = () => {
-      $f7.views.main.router.navigate('/details/new/');
-    };
-
-    // Lifecycle: On Mounted
-    $onMounted(async () => {
-
-      await syncData();
-
-
-      $store.dispatch('loadLocalStorage'); // Load data from local storage
-      sortAlbums(); // Initial sort and render
-
-
-
-    });
-    // Listen for pageBeforeIn every time user navigates back
-    $f7.on('pageBeforeIn', (page) => {
-      if (page.name === 'home') {
-        $store.dispatch('loadLocalStorage');
-        sortAlbums();
-      }
+      fetchAlbums();
     });
 
-
-    let listIndex;
-
-    // Lifecycle: On Before Unmount
     $onBeforeUnmount(() => {
+      const searchBar = document.getElementById('searchBar');
+      const sortSelect = document.getElementById('sortSelect');
+
+      searchBar.removeEventListener('input', onSearch);
+      sortSelect.removeEventListener('change', setSort);
+
       if (listIndex) listIndex.destroy();
-      $f7.off('pageBeforeIn'); // Remove listener to avoid memory leaks
+      $f7.off('pageInit');
     });
 
-    // Lifecycle: Page Init
-    $f7.on('pageInit', (page) => {
-      if (page.name === 'home') {
-        const segmentedButtons = document.querySelectorAll('.segmented .button');
-
-        // Add click event listeners to each button
-        segmentedButtons.forEach((button) => {
-          button.addEventListener('click', () => {
-            const sortCriterion = button.dataset.sort;
-            if (activeSort !== sortCriterion) {
-              activeSort = sortCriterion;
-              setActiveButton(button);
-
-              // Call your sorting logic here
-              console.log(`Sorting by: ${sortCriterion}`);
-              sortAlbums(sortCriterion); // Pass activeSort to your sorting function
-            }
-          });
-        });
-      }
-    });
-
-    // Return the render function
     return $render;
   }
-
 </script>
+
 <style>
-  /* Minimalistic rating styles */
-  .item-rating {
-    font-size: 18px;
-    margin-left: 10px;
+  .searchbar {
+    margin-bottom: 10px;
   }
 
-  /* Improve spacing between authors and ratings */
-  .item-authors {
-    font-size: 14px;
-    margin-right: 10px;
-    color: #666;
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .searchbar input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
   }
 
-  /* Segmented controls */
-  .segmented .button {
-    text-transform: capitalize;
-  }
-
-  .segmented .button-active {
-    font-weight: bold;
-  }
-
-  /* Sync button styles */
-  .sync-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-    color: var(--f7-icon-color, #000);
-  }
-
-  .sync-button .preloader {
-    margin-left: 5px;
-  }
-
-  /* Optional: Change sync icon color when active */
-  .sync-button.syncing {
-    color: var(--f7-color-primary);
-  }
-
-  /* "Add" button in the navbar */
-  .nav-add-button {
-    margin-right: 15px;
-    display: flex;
-    align-items: center;
-  }
-
-  .nav-add-button i {
-    font-size: 24px;
-  }
-
-  /* stylize the add button */
-  b.title-with-button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .list.simple-list select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
   }
 </style>

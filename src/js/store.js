@@ -1,11 +1,10 @@
 import { createStore } from 'framework7';
 import remotedataConfig from '../remoteStorage.config';
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 
 const { dataUrl: remoteDataURL, apiKey: remoteDataAPIKey } = remotedataConfig;
 
-const localStorageKey = 'iAlbumsData';
 
 // ====== MOCK DATA ===== //
 const mockData = JSON.parse(`{
@@ -46,28 +45,6 @@ const baseAlbum = {
   "standouts": null
 }
 
-
-const getDataFromRemote = async () => {
-  /*
-  get from online;
-  return the data to the caller
-  */
-
-  const remoteResults = await fetch(remoteDataURL, {
-    headers: {
-      'X-Access-Key': remoteDataAPIKey,
-      'X-Bin-Meta': true,
-    },
-  });
-  if (!remoteResults.ok) {
-    throw new Error(`HTTP error! Status: ${remoteResults.status}`);
-  }
-  const { record: remoteAlbums } = await remoteResults.json();
-
-  return remoteAlbums
-
-
-}
 
 const store = createStore({
   state: {
@@ -191,4 +168,5 @@ const store = createStore({
   },
 });
 
+export { mockData }
 export default store;
