@@ -73,8 +73,7 @@
 
       const filtered = sorted.filter((album) =>
         Object.values(album).some((value) =>
-          value.toString().toLowerCase().includes(query)
-        )
+          value && value.toString().toLowerCase().includes(query))
       );
 
       renderAlbums(filtered);

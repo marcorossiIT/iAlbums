@@ -1,6 +1,5 @@
 import { createStore } from 'framework7';
 import remotedataConfig from '../remoteStorage.config';
-import crypto from 'crypto';
 
 
 const { dataUrl: remoteDataURL, apiKey: remoteDataAPIKey } = remotedataConfig;
@@ -78,7 +77,7 @@ const store = createStore({
       //   edit last edit time
       state.lastModified = new Date().toISOString();
       //   add album
-      state.albums[crypto.createHash('sha1').update(JSON.stringify(newAlbum)).digest('hex')] = newAlbumDetails;
+      state.albums[Math.random()] = newAlbumDetails;
 
       // optional check last edit time per conflitti 
 
