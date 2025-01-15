@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-    name: Build and Deploy
     runs-on: ubuntu-latest
 
     steps:
@@ -26,13 +25,7 @@ jobs:
       - name: Build the project
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
-        run: |
-          cp -r www/ public/
-          echo "Deploying to GitHub Pages..."
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add public/
-          git commit -m "Deploy to GitHub Pages"
-          git push origin `github.ref_name`:gh-pages --force
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: www/
