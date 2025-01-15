@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cp -r www/ public/
+          echo "Deploying to GitHub Pages..."
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add public/
+          git commit -m "Deploy to GitHub Pages"
+          git push origin `github.ref_name`:gh-pages --force
