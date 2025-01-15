@@ -17,7 +17,7 @@
       <!-- Search Bar -->
       <div class="block">
         <div class="searchbar">
-          <input type="search" placeholder="Search albums..." id="searchBar" />
+          <input type="search" placeholder="🔍 Search albums..." id="searchBar" />
         </div>
       </div>
 
@@ -58,7 +58,6 @@
         authors: album.authors || ['Unknown Author'], // sostituisce con un generico unknown
       }));
       albums = storeAlbums;
-      console.log('gotten albums', albums);
 
       applySortingAndFiltering();
     };
@@ -86,7 +85,6 @@
       albumList.innerHTML = ''; // Clear existing list items
 
       filteredAlbums.forEach((album) => {
-        console.debug('albums displayed', album)
         const listItem = document.createElement('li');
         listItem.innerHTML = `
   <a href="/details/${album.id}/" class="item-link item-content">
@@ -95,7 +93,7 @@
         <div class="item-title">${album.title}</div>
         <div class="item-after">${album.rating}</div>
       </div>
-      <div class="item-subtitle" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+      <div class="item-subtitle">
         ${album.authors.join(', ')}
       </div>
     </div>
@@ -169,7 +167,7 @@
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 50px;
   }
 
   .list.simple-list select {
@@ -177,5 +175,12 @@
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
+  }
+
+  .item-subtitle {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

@@ -104,7 +104,7 @@ const store = createStore({
       //   edit last edit time
       state.lastModified = new Date().toISOString();
       //   update album
-      state.albums[uppedAlbumDetails.id] = uppedAlbumDetails; // TODO fare reactive
+      state.albums[updatedAlbum.id] = uppedAlbumDetails;
 
       // optional check last edit time per conflitti
 

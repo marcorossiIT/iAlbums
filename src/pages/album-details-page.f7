@@ -96,6 +96,7 @@
         inputAuthor.value = '';
       } else {
         const album = $store.getters.albums.value[albumID];
+
         if (album) {
           inputTitle.value = album.title || '';
           inputRating.value = album.rating || '';
@@ -116,7 +117,7 @@
     const saveAlbumDetails = () => {
       const title = inputTitle.value.trim();
       const rating = inputRating.value.trim();
-      const authors = inputAuthor.value.split(',').map(author => author.trim()).filter(Boolean);
+      const authors = inputAuthor.value.split(/[,;\\-]+/).map(author => author.trim()).filter(Boolean);
 
       if (!title) {
         $f7.dialog.alert('Album title is required!');
@@ -141,7 +142,8 @@
       // Extract albumID from route parameters
       const route = $f7.views.current.router.currentRoute;
       albumID = route.params.albumID;
-      isNewRecord = albumID === 'new';
+
+      isNewRecord = albumID === 'new' || albumID === undefined;
 
       loadAlbumDetails();
 
