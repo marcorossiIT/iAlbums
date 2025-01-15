@@ -1,24 +1,24 @@
-name: CI
+name: CI/CD Workflow
 
 on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
   build:
-    name: Build and Deploy
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          cache: "npm"
 
       - name: Install dependencies
         run: npm install
@@ -26,13 +26,37 @@ jobs:
       - name: Build the project
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: www
+          path: www/
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: www
+
+      - name: Deploy to Pages folder
         run: |
-          cp -r www/ public/
-          echo "Deploying to GitHub Pages..."
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add public/
-          git commit -m "Deploy to GitHub Pages"
-          git push origin `github.ref_name`:gh-pages --force
+          mkdir -p public
+          cp -r www/* public/
+
+      - name: Upload public folder as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: public
+          path: public/
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: public
+
